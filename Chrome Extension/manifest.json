@@ -1,0 +1,28 @@
+{
+  "name": "Cai FYP",
+  "description": "My final year project.",
+  "version": "2.0",
+  "permissions": [
+    "tabs",
+    "background",
+    "http://*/",
+    "http://www.caidavies.me/"
+  ],
+  "web_accessible_resources": [
+    "icon.png"
+    ],
+
+  "background": {
+    "scripts": ["mqttws31.js", "leap.js", "leaptrainer.min.js", "jquery-1.9.1.min.js", "background.js"],
+    "persistent": true
+  },
+  "content_scripts": [ {
+    "js": [ "mqttws31.js", "jquery-1.9.1.min.js", "content.js" ],
+    "css": ["style.css"],
+    "matches": [ "http://*/*", "https://*/*"]
+  }],
+  "browser_action": {
+    "default_title": "Make this page red"
+  },
+  "manifest_version": 2
+}
