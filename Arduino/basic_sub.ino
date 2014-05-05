@@ -10,13 +10,21 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 //broker settings
 //byte server[] = { 146, 185, 174, 52 }; // replace with the IP address of your broker - swap . for ,
 char* serverDNS = "box.bento.is";
-int port = 1883; //default port is 1883. To help get around network restrictions,you may need broker set as port 80
+int port = 80; //default port is 1883. To help get around network restrictions,you may need broker set as port 80
 boolean capturedStatus = false;
 char subscribedChannel[] = "public/cai-fyp/status";
 char deviceName[] = "cai"; // set a unique name for each device connected to the broker
    const int buttonPin = 4;     // the number of the pushbutton pin
    int buttonState = 0;         // variable for reading the pushbutton status
    int oldState;
+   
+//   Pull Chord Code
+int pin = 2;
+volatile int state = LOW;
+boolean pullyState = false;
+boolean pullyPreviousState = false;
+int pullyValue;
+   
 //Process p;
 //used to decode the message payload
 String payloadString;
@@ -119,7 +127,7 @@ void loop() {
   }else{
     client.loop();
   }
-
+  
   buttonState = digitalRead(buttonPin);
   // wait for 30 milliseconds to see the dimming effect    
   
@@ -142,7 +150,29 @@ void loop() {
     }
   }
   oldState = buttonState;
-  delay(10); 
+
+  //  Pulley stuff
+  pullyValue = analogRead(A5);
+  if(pullyValue > 500 && pullyValue <520)
+  {
+  pullyState = true;
+//  Serial.println(pullyState);
+//  Serial.println(pullyPreviousState);
+  }
+  else
+  { 
+    pullyState = false;
+//     Serial.println(pullyState);
+//  Serial.println(pullyPreviousState);
+  }
+  
+    if(pullyState != pullyPreviousState)
+  {
+    Serial.println("CHANGE");
+  }
+  
+  pullyPreviousState = pullyState;
+      delay(50);        // delay in between reads for stability 
 }
 
 
