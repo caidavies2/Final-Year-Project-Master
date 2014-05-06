@@ -43,6 +43,7 @@
         var chooseNotification = false;
         var numberOfFingers, lightOnFocus, numberOfHands;
         var previousNumberOfFingers = 0;
+        var iCount;
         var start = false;
         var captured = false;
         controller.on( 'connect' , function(){
@@ -72,11 +73,12 @@
           numberOfHands = frame.hands.length;
           // Check the status of
 
-          if(numberOfHands == 1)
-          {
+          // if(numberOfHands == 1)
+          // {
             // console.log(numberOfFingers);
-            if(numberOfFingers == 5)
+            if(numberOfHands == 1 && numberOfFingers == 5)
             {
+              
               // console.log('start');
               if(start !=true)
               {
@@ -86,7 +88,7 @@
               // console.log(start);
               // fingerStatus();
             }
-          }
+          // }
 
           if(numberOfHands !== 1)
           {
@@ -103,6 +105,10 @@
             if(captured == false){
               if(detectFist(numberOfFingers, numberOfHands))
               {
+                iCount = iCount + 1;
+
+                if(iCount > 2)
+                {
                 capturedSound();
                 // console.log(window.location.href);
                 chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
@@ -110,16 +116,20 @@
                   // sendDataToDatabase(tabs[0].url);
                   publish('captured','public/cai-fyp/status', 0);
                 });
-                
                 captured = true;
+                }
+                
               }
-              // else(console.log('hand not closed'));
+              else
+              {
+                iCount = 0;
+              }
             }
           }
         });
         function detectFist(fingers, hands)
         {
-          if(fingers == 1  && hands == 1)
+          if(fingers == 0  && hands == 1)
           {
             return true;
           }
@@ -168,3 +178,9 @@
 
         // connect controller
         controller.connect();
+
+        setInterval(function(){
+
+          console.log(iCount);
+
+          }, 500);
