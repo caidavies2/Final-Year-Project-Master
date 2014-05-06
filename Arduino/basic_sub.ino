@@ -3,7 +3,7 @@
 #include "WiFly.h"
 #include "PubSubClient.h"
 #include <process.h>
-#define PIN 6
+#define PIN 7
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 
 
@@ -25,6 +25,14 @@ boolean pullyState = false;
 boolean pullyPreviousState = false;
 int pullyValue;
    
+//   Neopixel
+int brightness = 10;
+boolean brightnessBool = false;
+int r = 255;
+int g = 0;
+int b = 255;
+int speed = 4;
+int numberOfItems;
 //Process p;
 //used to decode the message payload
 String payloadString;
@@ -59,7 +67,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     {
         capturedStatus = true;
         strip.begin();
-        setColor(255,255,255,255,0);
+        setColor(255,255,255,255,20);
     }
     else if(payloadString == "saved")
     {
@@ -108,17 +116,18 @@ void setup() {
    pinMode(buttonPin, INPUT); 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
+  glowingBrightness();
   
 }
 
 void loop() {  
 
     // read the input on analog pin 0:
-      int sensorValue = digitalRead(5);
-  if(sensorValue ==1)
-  {
-    cTouch();
-  }
+//      int sensorValue = digitalRead(5);
+//  if(sensorValue ==1)
+//  {
+//    cTouch();
+//  }
   
   //check and maintain the connection to the broker
   if(!client.connected()){
@@ -138,10 +147,12 @@ void loop() {
       Serial.println("Saved");
       client.publish("public/cai-fyp/status", "saved");
       capturedStatus = false;
+      cTouch(0,255,0);
     }
     else if(capturedStatus == false)
     {
       Serial.println("Could not save");
+      cTouch(255,0,0);
       Serial.println(capturedStatus);
     }
     else
@@ -150,10 +161,10 @@ void loop() {
     }
   }
   oldState = buttonState;
-
   //  Pulley stuff
   pullyValue = analogRead(A5);
-  if(pullyValue > 500 && pullyValue <520)
+//  Serial.println(pullyValue);
+  if(pullyValue > 100 && pullyValue <600)
   {
   pullyState = true;
 //  Serial.println(pullyState);
@@ -168,7 +179,7 @@ void loop() {
   
     if(pullyState != pullyPreviousState)
   {
-    Serial.println("CHANGE");
+      cTouch(0,0,0);
   }
   
   pullyPreviousState = pullyState;
@@ -188,9 +199,40 @@ void setColor(int r, int g, int b, int brightness, int setDelay)
   }
 }
 
-void cTouch()
+void glowingBrightness()
 {
-  setColor(0,255,0,255,30);
+  if(brightnessBool == false)
+   {
+     if(brightness >250)
+     {
+       brightnessBool = true;
+     }
+     else
+     {
+       brightness = brightness + speed;
+     }
+   }
+   
+   else if(brightnessBool == true)
+   {
+     if(brightness == 20)
+     {
+       brightnessBool = false;
+     }
+     else
+     {
+       brightness = brightness - speed;
+     }
+   }
+   
+     setColor(r,g,b,brightness, 5);
+}
+
+void cTouch(int r, int g, int b)
+{
+  setColor(r,g,b,20,30);
+  delay(1000);
+//  glowingBrightness();
 }
 
 
