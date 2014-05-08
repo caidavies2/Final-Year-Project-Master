@@ -14,6 +14,11 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 int port = 80; //default port is 1883. To help get around network restrictions,you may need broker set as port 80
 boolean capturedStatus = false;
 char subscribedChannel[] = "public/cai-fyp/status";
+
+// Scrape stuff
+char server[] = "www.caidavies.me";  
+boolean firstScrape = false;
+
 char deviceName[] = "cai"; // set a unique name for each device connected to the broker
    const int buttonPin = 4;     // the number of the pushbutton pin
    int buttonState = 0;         // variable for reading the pushbutton status
@@ -34,71 +39,14 @@ int g = 0;
 int b = 255;
 int speed = 4;
 int numberOfItems;
-//Process p;
-//used to decode the message payload
-String payloadString;
-void convertPayload(byte array[], byte len){
-  payloadString = "";
-  for (byte i = 0; i < len;){
-    char c = array[i++];
-    if (c < 0x20 || c > 0x7e){
-     Serial.print('.');
-     payloadString += '.';
-    }
-    else {
-      payloadString += char(c);
-    }
-  }
-  
-}
-
-//triggered when a message is recieved on a subscribed channel
-void callback(char* topic, byte* payload, unsigned int length) {
- // Serial.println("Message Recieved");
-  
-  // handle message
-  
-  //check the topic - use this is you want to sunbscribe to more than one channel
-  if (String(topic) == String(subscribedChannel)){
-//    Serial.println(topic); 
-    //convert the payload to a string, then print it out
-    convertPayload(payload, length);
-    Serial.println(payloadString);
-    if(payloadString == "captured")
-    {
-        capturedStatus = true;
-        strip.begin();
-        setColor(255,255,255,255,20);
-    }
-    else if(payloadString == "saved")
-    {
-       capturedStatus = false;
-    }
-}
-}
-
 EthernetClient ethClient;
 PubSubClient client(serverDNS, port, callback, ethClient);
+//Process p;
 
-void connectToBroker(){
-  //connect to the broker
-    if (client.connect(deviceName)) {
-      Serial.println("Connecting");
-      //send a test message
-      
-      //client.publish("ezticken","Jumping and flipping");
-      //subscribe to a channel
-      client.subscribe(subscribedChannel);
-      Serial.println("Connected");
-    } else{
-      Serial.println("Connection Error");
-    }
-  
-}
-
+// Setup
 void setup() {
   
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.println("setup");
   
   //connect to network
@@ -109,19 +57,59 @@ void setup() {
     // try to congifure using IP address instead of DHCP:
     Ethernet.begin(mac, ip);
   }
+  else
+  {
+    Serial.println("Connected to the ethernet");
+    if (ethClient.connect(server, 80)) {
+    Serial.println("connected");
+    // Make a HTTP request:
+    ethClient.println("GET /workshops/fyp/count.php");
+    ethClient.println("Host: www.caidavies.me");
+    ethClient.println("Connection: close");
+    ethClient.println();
+    }
+    
+  }
   // give the Ethernet shield a second to initialize:
   delay(1000);
   Serial.println("connecting...");
-
-   pinMode(buttonPin, INPUT); 
+  pinMode(buttonPin, INPUT); 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
   glowingBrightness();
   
 }
 
-void loop() {  
+// Loop
 
+void loop() {  
+    
+  
+          if(!firstScrape)
+          {
+           
+          if (ethClient.available()) {
+          char c = ethClient.read();
+          Serial.print(c);
+          }
+
+  // if the server's disconnected, stop the client:
+          if (!ethClient.connected()) {
+          Serial.println();
+          Serial.println("disconnecting.");
+          firstScrape = true;  
+          }
+          } 
+          else {
+            mainLoop();
+          }
+}
+
+
+void mainLoop()
+{
+ 
+   
   //check and maintain the connection to the broker
   if(!client.connected()){
      Serial.println("Disconnected");
@@ -177,6 +165,66 @@ void loop() {
   
   pullyPreviousState = pullyState;
       delay(50);        // delay in between reads for stability 
+ 
+  
+}
+
+
+//used to decode the message payload
+String payloadString;
+void convertPayload(byte array[], byte len){
+  payloadString = "";
+  for (byte i = 0; i < len;){
+    char c = array[i++];
+    if (c < 0x20 || c > 0x7e){
+     Serial.print('.');
+     payloadString += '.';
+    }
+    else {
+      payloadString += char(c);
+    }
+  }
+  
+}
+
+//triggered when a message is recieved on a subscribed channel
+void callback(char* topic, byte* payload, unsigned int length) {
+ // Serial.println("Message Recieved");
+  
+  // handle message
+  
+  //check the topic - use this is you want to sunbscribe to more than one channel
+  if (String(topic) == String(subscribedChannel)){
+//    Serial.println(topic); 
+    //convert the payload to a string, then print it out
+    convertPayload(payload, length);
+    Serial.println(payloadString);
+    if(payloadString == "captured")
+    {
+        capturedStatus = true;
+        strip.begin();
+        setColor(255,255,255,255,20);
+    }
+    else if(payloadString == "saved")
+    {
+       capturedStatus = false;
+    }
+}
+}
+
+void connectToBroker(){
+  //connect to the broker
+    if (client.connect(deviceName)) {
+      Serial.println("Connecting");
+      //send a test message
+      //client.publish("ezticken","Jumping and flipping");
+      //subscribe to a channel
+      client.subscribe(subscribedChannel);
+      Serial.println("Connected");
+    } else{
+      Serial.println("Connection Error");
+    }
+  
 }
 
 
@@ -227,5 +275,4 @@ void cTouch(int r, int g, int b)
   delay(1000);
 //  glowingBrightness();
 }
-
 
