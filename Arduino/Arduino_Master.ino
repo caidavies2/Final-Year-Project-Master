@@ -1,4 +1,4 @@
-#include <Adafruit_NeoPixel.h>
+   #include <Adafruit_NeoPixel.h>
 #include "SPI.h"
 #include "PubSubClient.h"
 #include <Ethernet.h>
@@ -14,17 +14,19 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 int port = 80; //default port is 1883. To help get around network restrictions,you may need broker set as port 80
 boolean capturedStatus = false;
 char subscribedChannel[] = "public/cai-fyp/status";
-
+String str = "";
 // Scrape stuff
 char server[] = "www.caidavies.me";  
 boolean firstScrape = false;
+int scrapeCount = 0;
+const char* theval;
 
 char deviceName[] = "cai"; // set a unique name for each device connected to the broker
    const int buttonPin = 4;     // the number of the pushbutton pin
    int buttonState = 0;         // variable for reading the pushbutton status
    int oldState;
    
-//   Pull Chord Code
+//   Pull Chord Code  
 int pin = 2;
 volatile int state = LOW;
 boolean pullyState = false;
@@ -37,7 +39,7 @@ boolean brightnessBool = false;
 int r = 255;
 int g = 0;
 int b = 255;
-int speed = 4;
+
 int numberOfItems;
 EthernetClient ethClient;
 PubSubClient client(serverDNS, port, callback, ethClient);
@@ -83,21 +85,26 @@ void setup() {
 // Loop
 
 void loop() {  
-    
+          
   
           if(!firstScrape)
-          {
-           
+          {     
           if (ethClient.available()) {
           char c = ethClient.read();
-          Serial.print(c);
+          str += c;
           }
 
-  // if the server's disconnected, stop the client:
+          // if the server's disconnected, stop the client:
           if (!ethClient.connected()) {
           Serial.println();
           Serial.println("disconnecting.");
-          firstScrape = true;  
+          firstScrape = true;
+            int findFirstBracket = (str.indexOf('[')) + 1;
+            int findSecondBracket = str.indexOf(']');
+            String cutString = (str.substring(findFirstBracket, findSecondBracket));
+            numberOfItems =  cutString.toInt();
+            Serial.println("Number of items: ");
+            Serial.println(numberOfItems);
           }
           } 
           else {
@@ -108,8 +115,9 @@ void loop() {
 
 void mainLoop()
 {
- 
-   
+  
+  glowingBrightness();
+  
   //check and maintain the connection to the broker
   if(!client.connected()){
      Serial.println("Disconnected");
@@ -129,12 +137,14 @@ void mainLoop()
       client.publish("public/cai-fyp/status", "saved");
       capturedStatus = false;
       cTouch(0,255,0);
+      numberOfItems = numberOfItems + 1;
     }
     else if(capturedStatus == false)
     {
       Serial.println("Could not save");
       cTouch(255,0,0);
       Serial.println(capturedStatus);
+      
     }
     else
     {
@@ -161,9 +171,11 @@ void mainLoop()
     if(pullyState != pullyPreviousState)
   {
       cTouch(0,0,0);
+      numberOfItems = 0;
   }
   
-  pullyPreviousState = pullyState;
+      pullyPreviousState = pullyState;
+//      Serial.println(numberOfItems);
       delay(50);        // delay in between reads for stability 
  
   
@@ -216,9 +228,6 @@ void connectToBroker(){
   //connect to the broker
     if (client.connect(deviceName)) {
       Serial.println("Connecting");
-      //send a test message
-      //client.publish("ezticken","Jumping and flipping");
-      //subscribe to a channel
       client.subscribe(subscribedChannel);
       Serial.println("Connected");
     } else{
@@ -244,35 +253,35 @@ void glowingBrightness()
 {
   if(brightnessBool == false)
    {
-     if(brightness >250)
+     if(brightness >=150)
      {
        brightnessBool = true;
      }
      else
      {
-       brightness = brightness + speed;
+       brightness = brightness + (numberOfItems * 1.5); // Speed is the number of links * appropriate number
      }
    }
    
    else if(brightnessBool == true)
    {
-     if(brightness == 20)
+     if(brightness <= 10)
      {
        brightnessBool = false;
      }
      else
      {
-       brightness = brightness - speed;
+       brightness = brightness - (numberOfItems * 1.5);
      }
    }
    
-     setColor(r,g,b,brightness, 5);
+     setColor(r,g,b,brightness, 0);
+     Serial.println(brightness);
 }
 
 void cTouch(int r, int g, int b)
 {
   setColor(r,g,b,20,30);
-  delay(1000);
-//  glowingBrightness();
+//  delay(1000);
 }
 
