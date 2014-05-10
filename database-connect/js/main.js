@@ -4,9 +4,9 @@ var testData = "test sosd";
 
   $('button').click(function(){
       $.ajax({
-     url: 'aj.php', //This is the current doc
+     url: 'add.php?node=3', //This is the current doc
      type: "POST",
-     data: {name:testData},
+     data: {url:testData},
      success: function(data){
          console.log(data);
      }
