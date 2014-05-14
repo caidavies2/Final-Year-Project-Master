@@ -1,10 +1,8 @@
 <?php
+  // if (isSet($_POST["name"])) {
+  $url = $_POST['name'];
 date_default_timezone_set("Europe/London");
-// if (isSet($_POST["url"])) {
-//   $url = $_POST['url'];
-//   }
-
-$url = "www.amazon.co.uk";
+// $url = "www.google.com";
 
 $node = $_GET["node"];
 $json = file_get_contents("storage/node-" . $node . ".json");
@@ -17,7 +15,6 @@ $data[$addItemNumber] = array('Id' => $addItemNumber, 'Url' => get_tiny_url($url
 
 // Writing modified data:
 file_put_contents("storage/node-" . $node . ".json", json_encode($data, JSON_FORCE_OBJECT));
-
 
 function getTitle($Url){
     $str = file_get_contents($Url);
@@ -49,6 +46,6 @@ function getMetaDescription($content) {
              break;
     }
     return $metaDescription;
+// }
 }
-
 ?>

@@ -1,17 +1,21 @@
 $(document).ready(function(){
 
-var testData = "test sosd";
+var testData = "http://www.caidavies.me";
 
   $('button').click(function(){
-      $.ajax({
-     url: 'add.php?node=3', //This is the current doc
+     $.ajax({
+     url: 'add.php?node=2', //This is the current doc
      type: "POST",
-     data: {url:testData},
+     data: {name:testData},
      success: function(data){
          console.log(data);
-     }
+     },
+     error: function (xhr, ajaxOptions, thrownError) {
+           console.log(xhr.status);
+           console.log(xhr.responseText);
+           console.log(thrownError);
+       }
 });
-
   });
 
 });
