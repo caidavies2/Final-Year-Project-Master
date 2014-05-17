@@ -1,6 +1,6 @@
 $(document).ready(function(){
 
-var testData = "http://www.caidavies.me";
+var testData = "http://www.amazon.co.uk";
 
   $('button').click(function(){
      $.ajax({
