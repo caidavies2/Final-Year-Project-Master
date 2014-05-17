@@ -25,9 +25,9 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
 char server[] = "www.hivenodes.com";    // name address for Google (using DNS)
 String str = "";
-String newString = "";
-String items[] = "test";
+String items[] = "";
 boolean stopScraping = false;
+int count = 1;
 // Set the static IP address to use if the DHCP fails to assign
 IPAddress ip(192,168,0,177);
 
@@ -76,14 +76,13 @@ void loop()
   if (client.available()) {
   char c = client.read();
   str += c;
-//  Serial.print(c);
   }
           
   // if the server's disconnected, stop the client:
   if (!client.connected()) {
     Serial.println();
 //    Serial.println("disconnecting.");
-//    client.stop();    
+    client.stop();    
     if(!stopScraping)
     {
       
@@ -97,20 +96,38 @@ void loop()
 
   void cutString()
   {
-        int itemStart = str.indexOf("[item]") +6;
-        int itemEnd = str.indexOf("[/item]");
-        int nextItem = str.indexOf("[item]", itemEnd);
-        int sizeOfString = str.length();
-        Serial.println(str);
-        newString = (str.substring(nextItem,sizeOfString));
-        Serial.println(newString);  
-//        Serial.println(itemStart);
-//        Serial.println(itemEnd);      
-//        Serial.println(nextItem); 
-        
-        if(nextItem == -1)
-        {
-          stopScraping = true;
-        }
+//        int itemStart = str.indexOf("[item]") +6;
+//        int itemEnd = str.indexOf("[/item]");
+//        int nextItem = str.indexOf("[item]", itemEnd);
+//        int sizeOfString = str.length();
+//        int cutUntil = sizeOfString - itemEnd;
+//        String cutString;
+//        
+//        cutString = (str.substring(itemStart, itemEnd));
+//        Serial.println(cutString);
+//          
+//        str = str.substring(144);
+          
+          
+          while(!stopScraping)
+          
+          {
+            
+            String instance = "[item" + String(count) + "]";
+            int itemStart = str.indexOf(instance);           
+            int itemEnd = str.indexOf("[/item]", itemStart);
+            String stringCut = str.substring(itemStart,itemEnd);
+            Serial.println(stringCut);
+            Serial.println(
+            count++;
+            delay(1000);           
+            
+            if(itemStart == -1)
+            {
+              stopScraping = true; 
+              str = ""; 
+            }
+            
+          }
   }
 
