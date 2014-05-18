@@ -1,31 +1,22 @@
-/*
-  Web client
- 
- This sketch connects to a website (http://www.google.com)
- using an Arduino Wiznet Ethernet shield. 
- 
- Circuit:
- * Ethernet shield attached to pins 10, 11, 12, 13
- 
- created 18 Dec 2009
- by David A. Mellis
- modified 9 Apr 2012
- by Tom Igoe, based on work by Adrian McEwen
- 
- */
+#include <MemoryFree.h>
+
+
+#include <Adafruit_Thermal.h>
+#include "SoftwareSerial.h"
 
 #include <SPI.h>
 #include <Ethernet.h>
-
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+int printer_RX_Pin = 5;  // This is the green wire
+int printer_TX_Pin = 6;  // This is the yellow wire
+Adafruit_Thermal printer(printer_RX_Pin, printer_TX_Pin);
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
 char server[] = "www.hivenodes.com";    // name address for Google (using DNS)
 String str = "";
-String items[] = "";
 boolean stopScraping = false;
 int count = 1;
 // Set the static IP address to use if the DHCP fails to assign
@@ -57,6 +48,7 @@ void setup() {
   // if you get a connection, report back via serial:
   if (client.connect(server, 80)) {
     Serial.println("connected");
+                Serial.println(freeRam());
     // Make a HTTP request:
     client.println("GET /~hivenode/fyp/read.php?node=2");
     client.println("Host: www.hivenodes.com");
@@ -80,46 +72,34 @@ void loop()
           
   // if the server's disconnected, stop the client:
   if (!client.connected()) {
-    Serial.println();
-//    Serial.println("disconnecting.");
     client.stop();    
     if(!stopScraping)
     {
+      cutString();
       
-    cutString();
     }
-    // do nothing forevermore:
-//    while(true);
   }
   
 }
 
   void cutString()
-  {
-//        int itemStart = str.indexOf("[item]") +6;
-//        int itemEnd = str.indexOf("[/item]");
-//        int nextItem = str.indexOf("[item]", itemEnd);
-//        int sizeOfString = str.length();
-//        int cutUntil = sizeOfString - itemEnd;
-//        String cutString;
-//        
-//        cutString = (str.substring(itemStart, itemEnd));
-//        Serial.println(cutString);
-//          
-//        str = str.substring(144);
+  {               
           
-          
-          while(!stopScraping)
+    while(!stopScraping)
           
           {
             
             String instance = "[item" + String(count) + "]";
             int itemStart = str.indexOf(instance);           
             int itemEnd = str.indexOf("[/item]", itemStart);
+            int titleStart, titleEnd, descriptionStart, descriptionEnd, urlStart, urlEnd, dateStart, dateEnd, timeStart,timeEnd;
             String stringCut = str.substring(itemStart,itemEnd);
-            Serial.println(stringCut);
-            Serial.println(
+            printer.println(innerScrape(stringCut, "[title]"));
+            Serial.println(innerScrape(stringCut, "[url]"));
+            Serial.println(innerScrape(stringCut, "[date]"));
+            Serial.println(innerScrape(stringCut, "[time]"));
             count++;
+            
             delay(1000);           
             
             if(itemStart == -1)
@@ -130,4 +110,26 @@ void loop()
             
           }
   }
+  
+
+String innerScrape(String strInstance, String attribute)
+{
+ 
+ int attributeLength = attribute.length();
+// Serial.print(attributeLength);
+ int strStart = strInstance.indexOf(attribute) + attributeLength;
+ int strEnd = strInstance.indexOf(attribute, strStart);
+ 
+ return strInstance.substring(strStart,strEnd);
+
+  
+}
+
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
+
 
