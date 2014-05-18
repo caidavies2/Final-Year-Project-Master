@@ -30,6 +30,7 @@ EthernetClient client;
 void setup() {
  // Open serial communications and wait for port to open:
   Serial.begin(9600);
+  printer.begin();
    while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
@@ -48,7 +49,6 @@ void setup() {
   // if you get a connection, report back via serial:
   if (client.connect(server, 80)) {
     Serial.println("connected");
-                Serial.println(freeRam());
     // Make a HTTP request:
     client.println("GET /~hivenode/fyp/read.php?node=2");
     client.println("Host: www.hivenodes.com");
@@ -65,7 +65,8 @@ void loop()
 {
   // if there are incoming bytes available 
   // from the server, read them and print them:
-  if (client.available()) {
+  
+  if (client.available() && printStatus) {
   char c = client.read();
   str += c;
   }
@@ -76,10 +77,9 @@ void loop()
     if(!stopScraping)
     {
       cutString();
-      
     }
   }
-  
+  Serial.println(freeRam());
 }
 
   void cutString()
@@ -89,15 +89,14 @@ void loop()
           
           {
             
-            String instance = "[item" + String(count) + "]";
+            String instance = "[it" + String(count) + "]";
             int itemStart = str.indexOf(instance);           
-            int itemEnd = str.indexOf("[/item]", itemStart);
-            int titleStart, titleEnd, descriptionStart, descriptionEnd, urlStart, urlEnd, dateStart, dateEnd, timeStart,timeEnd;
+            int itemEnd = str.indexOf("[/it]", itemStart);
             String stringCut = str.substring(itemStart,itemEnd);
-            printer.println(innerScrape(stringCut, "[title]"));
-            Serial.println(innerScrape(stringCut, "[url]"));
-            Serial.println(innerScrape(stringCut, "[date]"));
-            Serial.println(innerScrape(stringCut, "[time]"));
+            printer.println(innerScrape(stringCut, "[t]"));
+            printer.println(innerScrape(stringCut, "[u]"));
+            printer.println(innerScrape(stringCut, "[d]"));
+            printer.println(innerScrape(stringCut, "[ti]"));
             count++;
             
             delay(1000);           
@@ -105,6 +104,7 @@ void loop()
             if(itemStart == -1)
             {
               stopScraping = true; 
+              
               str = ""; 
             }
             
@@ -130,6 +130,3 @@ int freeRam () {
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
-
-
-
