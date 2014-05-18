@@ -17,6 +17,8 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include "PubSubClient.h"
+
+
 #include <Adafruit_Thermal.h>
 #include "SoftwareSerial.h"
 // Enter a MAC address for your controller below.
@@ -24,10 +26,11 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 int printer_RX_Pin = 5;  // This is the green wire
 int printer_TX_Pin = 6;  // This is the yellow wire
+int itemEnd, itemStart; 
 Adafruit_Thermal printer(printer_RX_Pin, printer_TX_Pin);
 int count = 1;
-char* serverDNS = "box.bento.is";
 String str = "";
+char* serverDNS = "box.bento.is";
 int port = 80;
 char subscribedChannel[] = "public/cai-fyp/status";
 char deviceName[] = "cai"; // set a unique name for each device connected to the broker
@@ -58,7 +61,7 @@ void setup() {
 
   // start the Ethernet connection:
   if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP");
+    Serial.println(F("Failed to configure Ethernet using DHCP"));
     // no point in carrying on, so do nothing forevermore:
     // try to congifure using IP address instead of DHCP:
     Ethernet.begin(mac, ip);
@@ -66,7 +69,7 @@ void setup() {
 
   // give the Ethernet shield a second to initialize:
   delay(1000);
-  Serial.println("connecting...");
+  Serial.println(F("connecting..."));
 
   // if you get a connection, report back via serial:
 
@@ -92,43 +95,57 @@ void loop()
   }
 
   if (client.available()) {
-  char c = client.read();
-  str += c;
-  Serial.print(c); 
-   }
+    char c = client.read();
+    str += c;
+//  Serial.print(c); 
+  
+  if(c == '~')
+  {
+  cutString(str); 
+  }
+  
+  }
+  
     delay(1);
+    Serial.println(freeRam());
 }
 
-void cutString()
+void cutString(String str)
   {                          
-          {            
+          
+    if(scrapeStatus)
+    {
+            
             
             String instance = "[it" + String(count) + "]";
-            int itemStart = str.indexOf(instance);           
-            int itemEnd = str.indexOf("[/it]", itemStart);
+            itemStart = str.indexOf(instance);           
+            itemEnd = str.indexOf("[/it]", itemStart);
             String stringCut = str.substring(itemStart,itemEnd);
-            Serial.println(innerScrape(stringCut, "[t]"));
-            Serial.println(innerScrape(stringCut, "[u]"));
-            Serial.println(innerScrape(stringCut, "[d]"));
-            Serial.println(innerScrape(stringCut, "[ti]"));
-            Serial.println(innerScrape(stringCut, "[t]"));
-            Serial.println("print");
-            count++;
-            
-            delay(1000);           
+//            printer.feed(1);            
+            printer.println(innerScrape(stringCut, "[t]"));
+            delay(50);
+            printer.setSize('s');
+            printer.println(innerScrape(stringCut, "[u]"));
+//            printer.println('tinyurl.com/a');
+            printer.setSize('M');
+            delay(50);
+            printer.println(innerScrape(stringCut, "[d]"));
+            delay(50);
+            printer.println(innerScrape(stringCut, "[ti]"));
+            delay(50);
+            printer.feed(2);
             
             if(itemStart == -1)
             {
-                  scrapeStatus = false;
-              
-              str = ""; 
+                  Serial.println(F("Done"));           
             }
             
-          }
+    }
   }
   
   
-  String innerScrape(String strInstance, String attribute)
+  
+String innerScrape(String strInstance, String attribute)
 {
  
  int attributeLength = attribute.length();
@@ -161,16 +178,16 @@ void convertPayload(byte array[], byte len){
 void httpRequest(int node)
 {
     if (client.connect(server, 80)) {
-    Serial.println("connected to server for http request");
+    Serial.println(F("connected to server for http request"));
     // Make a HTTP request:
     client.println("GET /~hivenode/fyp/read.php?node=" + String(node));
-    client.println("Host: www.hivenodes.com");
-    client.println("Connection: close");
+    client.println(F("Host: www.hivenodes.com"));
+    client.println(F("Connection: close"));
     client.println();
   } 
   else {
     // kf you didn't get a connection to the server:
-    Serial.println("connection failed");
+    Serial.println(F("connection failed"));
   }
   
 }
@@ -178,11 +195,11 @@ void httpRequest(int node)
 void connectToBroker(){
   //connect to the broker
     if (wifiClient.connect(deviceName)) {
-      Serial.println("Connecting to broker");
+      Serial.println(F("Connecting to broker"));
       wifiClient.subscribe(subscribedChannel);
-      Serial.println("Connected to broker");
+      Serial.println(F("Connected to broker"));
     } else{
-      Serial.println("Connection Error");
+      Serial.println(F("Connection Error"));
     }
   
 }
@@ -202,9 +219,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
     {
     wifiClient.disconnect();
     scrapeStatus = true;
-    httpRequest(2);
-    Serial.println("I have been triggered");
+    httpRequest(1);
+    Serial.println(F("I have been triggered"));
     }
     }
+}
+
+
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 
