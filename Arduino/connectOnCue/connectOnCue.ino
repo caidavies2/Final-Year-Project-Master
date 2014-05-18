@@ -17,10 +17,15 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include "PubSubClient.h"
-
+#include <Adafruit_Thermal.h>
+#include "SoftwareSerial.h"
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+int printer_RX_Pin = 5;  // This is the green wire
+int printer_TX_Pin = 6;  // This is the yellow wire
+Adafruit_Thermal printer(printer_RX_Pin, printer_TX_Pin);
+int count = 1;
 char* serverDNS = "box.bento.is";
 String str = "";
 int port = 80;
@@ -45,6 +50,7 @@ EthernetClient client;
 PubSubClient wifiClient(serverDNS, port, callback, client);
 void setup() {
  // Open serial communications and wait for port to open:
+   printer.begin();
   Serial.begin(9600);
    while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
@@ -68,6 +74,14 @@ void setup() {
 
 void loop()
 {
+  
+  //  if (!client.connected()) {
+//    if(!stopScraping)
+//    {
+////      cutString();
+//    }
+//  }
+  
   if(!scrapeStatus){  
    if(!wifiClient.connected()){
 //     Serial.println("Disconnected");
@@ -82,8 +96,51 @@ void loop()
   str += c;
   Serial.print(c); 
    }
-
+    delay(1);
 }
+
+void cutString()
+  {                          
+          {            
+            
+            String instance = "[it" + String(count) + "]";
+            int itemStart = str.indexOf(instance);           
+            int itemEnd = str.indexOf("[/it]", itemStart);
+            String stringCut = str.substring(itemStart,itemEnd);
+            Serial.println(innerScrape(stringCut, "[t]"));
+            Serial.println(innerScrape(stringCut, "[u]"));
+            Serial.println(innerScrape(stringCut, "[d]"));
+            Serial.println(innerScrape(stringCut, "[ti]"));
+            Serial.println(innerScrape(stringCut, "[t]"));
+            Serial.println("print");
+            count++;
+            
+            delay(1000);           
+            
+            if(itemStart == -1)
+            {
+                  scrapeStatus = false;
+              
+              str = ""; 
+            }
+            
+          }
+  }
+  
+  
+  String innerScrape(String strInstance, String attribute)
+{
+ 
+ int attributeLength = attribute.length();
+// Serial.print(attributeLength);
+ int strStart = strInstance.indexOf(attribute) + attributeLength;
+ int strEnd = strInstance.indexOf(attribute, strStart);
+ 
+ return strInstance.substring(strStart,strEnd);
+
+  
+}
+
 
 
 void convertPayload(byte array[], byte len){
@@ -101,12 +158,12 @@ void convertPayload(byte array[], byte len){
   
 }
 
-void httpRequest()
+void httpRequest(int node)
 {
     if (client.connect(server, 80)) {
     Serial.println("connected to server for http request");
     // Make a HTTP request:
-    client.println("GET /~hivenode/fyp/read.php?node=2");
+    client.println("GET /~hivenode/fyp/read.php?node=" + String(node));
     client.println("Host: www.hivenodes.com");
     client.println("Connection: close");
     client.println();
@@ -143,9 +200,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println(payloadString);
     if(payloadString == "print-node-1")
     {
-    scrapeStatus = true;
     wifiClient.disconnect();
-    httpRequest();
+    scrapeStatus = true;
+    httpRequest(2);
     Serial.println("I have been triggered");
     }
     }
