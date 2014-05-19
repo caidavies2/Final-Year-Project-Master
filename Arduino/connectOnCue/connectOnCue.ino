@@ -87,7 +87,6 @@ void loop()
   
   if(!scrapeStatus){  
    if(!wifiClient.connected()){
-//     Serial.println("Disconnected");
      connectToBroker();
   }else{
     wifiClient.loop();
@@ -97,7 +96,7 @@ void loop()
   if (client.available()) {
     char c = client.read();
     str += c;
-//  Serial.print(c); 
+  Serial.print(c); 
   
   if(c == '~')
   {
@@ -107,37 +106,43 @@ void loop()
   }
   
     delay(1);
-    Serial.println(freeRam());
+//    Serial.println(freeRam());
 }
 
 void cutString(String str)
   {                          
           
-    if(scrapeStatus)
+    while(scrapeStatus)
     {
             
-            
+            Serial.println(freeRam());
             String instance = "[it" + String(count) + "]";
             itemStart = str.indexOf(instance);           
             itemEnd = str.indexOf("[/it]", itemStart);
             String stringCut = str.substring(itemStart,itemEnd);
 //            printer.feed(1);            
-            printer.println(innerScrape(stringCut, "[t]"));
-            delay(50);
-            printer.setSize('s');
-            printer.println(innerScrape(stringCut, "[u]"));
-//            printer.println('tinyurl.com/a');
-            printer.setSize('M');
-            delay(50);
-            printer.println(innerScrape(stringCut, "[d]"));
-            delay(50);
-            printer.println(innerScrape(stringCut, "[ti]"));
-            delay(50);
-            printer.feed(2);
+//            printer.println(innerScrape(stringCut, "[t]"));
+//            printer.setSize('s');
+//            printer.println(innerScrape(stringCut, "[u]"));
+//            printer.setSize('M');
+//            printer.println(innerScrape(stringCut, "[d]"));
+//            printer.println(innerScrape(stringCut, "[ti]"));
+//            printer.feed(2);
+            Serial.println(innerScrape(stringCut, "[t]"));
+            Serial.println(innerScrape(stringCut, "[u]"));
+            Serial.println(innerScrape(stringCut, "[d]"));
+            Serial.println(innerScrape(stringCut, "[ti]"));
+
+            count++;
             
             if(itemStart == -1)
             {
-                  Serial.println(F("Done"));           
+                  scrapeStatus = false; 
+                  wifiClient.disconnect();
+//                  deleteNode(2);
+                  connectToBroker();
+                  itemStart=0;          
+                  str = "";
             }
             
     }
@@ -189,8 +194,25 @@ void httpRequest(int node)
     // kf you didn't get a connection to the server:
     Serial.println(F("connection failed"));
   }
+}
+
+void deleteNode(int node)
+{
+    if (client.connect(server, 80)) {
+    Serial.println(F("connected to server for http request"));
+    // Make a HTTP request:
+    client.println("GET /~hivenode/fyp/delete.php?node=" + String(node));
+    client.println(F("Host: www.hivenodes.com"));
+    client.println(F("Connection: close"));
+    client.println();
+  } 
+  else {
+    // kf you didn't get a connection to the server:
+    Serial.println(F("connection failed"));
+  }
   
 }
+
 
 void connectToBroker(){
   //connect to the broker
@@ -217,9 +239,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println(payloadString);
     if(payloadString == "print-node-1")
     {
+    str = "";
+    count = 1;
     wifiClient.disconnect();
     scrapeStatus = true;
-    httpRequest(1);
+    httpRequest(2);
     Serial.println(F("I have been triggered"));
     }
     }
