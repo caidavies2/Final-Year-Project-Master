@@ -13,27 +13,26 @@
  by Tom Igoe, based on work by Adrian McEwen
  
  */
-
 #include <SPI.h>
 #include <Ethernet.h>
 #include "PubSubClient.h"
-
-
 #include <Adafruit_Thermal.h>
 #include "SoftwareSerial.h"
+
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 int printer_RX_Pin = 5;  // This is the green wire
 int printer_TX_Pin = 6;  // This is the yellow wire
-int itemEnd, itemStart; 
+int itemEnd, itemStart;
+int node;
 Adafruit_Thermal printer(printer_RX_Pin, printer_TX_Pin);
 int count = 1;
 String str = "";
 char* serverDNS = "box.bento.is";
 int port = 80;
 char subscribedChannel[] = "public/cai-fyp/status";
-char deviceName[] = "cai"; // set a unique name for each device connected to the broker
+char deviceName[] = "printer"; // set a unique name for each device connected to the broker
 boolean scrapeStatus = false;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
@@ -77,7 +76,6 @@ void setup() {
 
 void loop()
 {
-  
   //  if (!client.connected()) {
 //    if(!stopScraping)
 //    {
@@ -90,6 +88,7 @@ void loop()
      connectToBroker();
   }else{
     wifiClient.loop();
+//    Serial.println("loop");
   }
   }
 
@@ -114,32 +113,34 @@ void cutString(String str)
           
     while(scrapeStatus)
     {
+      
+      if(count ==1)
+      {
+          printer.inverseOn();
+          printer.println("Node " + String(node));
+          printer.inverseOff();
+      }
             
             Serial.println(freeRam());
             String instance = "[it" + String(count) + "]";
             itemStart = str.indexOf(instance);           
             itemEnd = str.indexOf("[/it]", itemStart);
             String stringCut = str.substring(itemStart,itemEnd);
-//            printer.feed(1);            
-//            printer.println(innerScrape(stringCut, "[t]"));
-//            printer.setSize('s');
-//            printer.println(innerScrape(stringCut, "[u]"));
-//            printer.setSize('M');
-//            printer.println(innerScrape(stringCut, "[d]"));
-//            printer.println(innerScrape(stringCut, "[ti]"));
-//            printer.feed(2);
-            Serial.println(innerScrape(stringCut, "[t]"));
-            Serial.println(innerScrape(stringCut, "[u]"));
-            Serial.println(innerScrape(stringCut, "[d]"));
-            Serial.println(innerScrape(stringCut, "[ti]"));
-
+            String url = innerScrape(stringCut, "[u]");
+            printer.feed(1);      
+            printer.setSize('L');      
+            printer.println(innerScrape(stringCut, "[t]"));
+            printer.setSize('s');
+            printer.println(url);
+            printer.setSize('M');
+            printer.println(innerScrape(stringCut, "[d]"));
+            printer.println(innerScrape(stringCut, "[ti]"));
+            printer.feed(1);            
             count++;
-            
             if(itemStart == -1)
             {
                   scrapeStatus = false; 
                   wifiClient.disconnect();
-//                  deleteNode(2);
                   connectToBroker();
                   itemStart=0;          
                   str = "";
@@ -196,23 +197,6 @@ void httpRequest(int node)
   }
 }
 
-void deleteNode(int node)
-{
-    if (client.connect(server, 80)) {
-    Serial.println(F("connected to server for http request"));
-    // Make a HTTP request:
-    client.println("GET /~hivenode/fyp/delete.php?node=" + String(node));
-    client.println(F("Host: www.hivenodes.com"));
-    client.println(F("Connection: close"));
-    client.println();
-  } 
-  else {
-    // kf you didn't get a connection to the server:
-    Serial.println(F("connection failed"));
-  }
-  
-}
-
 
 void connectToBroker(){
   //connect to the broker
@@ -227,8 +211,7 @@ void connectToBroker(){
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
- // Serial.println("Message Recieved");
-  
+  Serial.println("Message Recieved");
   // handle message
   
   //check the topic - use this is you want to sunbscribe to more than one channel
@@ -236,15 +219,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
 //    Serial.println(topic); 
     //convert the payload to a string, then print it out
     convertPayload(payload, length);
+    delay(1);
     Serial.println(payloadString);
     if(payloadString == "print-node-1")
     {
+    node = 1;
+    delay(1);
     str = "";
+    delay(1);
     count = 1;
+    delay(1);
     wifiClient.disconnect();
+    delay(1);
     scrapeStatus = true;
-    httpRequest(2);
-    Serial.println(F("I have been triggered"));
+    delay(1);
+    httpRequest(1);
+    delay(1);
     }
     }
 }
