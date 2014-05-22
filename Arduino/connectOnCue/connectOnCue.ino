@@ -1,23 +1,9 @@
-/*
-  Web client
- 
- This sketch connects to a website (http://www.google.com)
- using an Arduino Wiznet Ethernet shield. 
- 
- Circuit:
- * Ethernet shield attached to pins 10, 11, 12, 13
- 
- created 18 Dec 2009
- by David A. Mellis
- modified 9 Apr 2012
- by Tom Igoe, based on work by Adrian McEwen
- 
- */
 #include <SPI.h>
 #include <Ethernet.h>
 #include "PubSubClient.h"
 #include <Adafruit_Thermal.h>
 #include "SoftwareSerial.h"
+#include "hivesmall.h"
 
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
@@ -34,6 +20,7 @@ int port = 80;
 char subscribedChannel[] = "public/cai-fyp/status";
 char deviceName[] = "printer"; // set a unique name for each device connected to the broker
 boolean scrapeStatus = false;
+boolean moreThanOne;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
@@ -53,7 +40,7 @@ PubSubClient wifiClient(serverDNS, port, callback, client);
 void setup() {
  // Open serial communications and wait for port to open:
    printer.begin();
-  Serial.begin(9600);
+  Serial.begin(19200);
    while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
@@ -76,19 +63,26 @@ void setup() {
 
 void loop()
 {
+  
+//    if (Ethernet.begin(mac) == 0) {
+//    Serial.println(F("Failed to configure Ethernet using DHCP"));
+//    // no point in carrying on, so do nothing forevermore:
+//    // try to congifure using IP address instead of DHCP:
+//    Ethernet.begin(mac, ip);
+//  }
+//Ethernet.maintain();
   //  if (!client.connected()) {
 //    if(!stopScraping)
 //    {
 ////      cutString();
 //    }
 //  }
-  
   if(!scrapeStatus){  
    if(!wifiClient.connected()){
      connectToBroker();
-  }else{
+  }
+  else{
     wifiClient.loop();
-//    Serial.println("loop");
   }
   }
 
@@ -104,8 +98,7 @@ void loop()
   
   }
   
-    delay(1);
-//    Serial.println(freeRam());
+    delay(50);
 }
 
 void cutString(String str)
@@ -113,40 +106,9 @@ void cutString(String str)
           
     while(scrapeStatus)
     {
-      
-      if(count ==1)
-      {
-          printer.inverseOn();
-          printer.println("Node " + String(node));
-          printer.inverseOff();
-      }
-            
-            Serial.println(freeRam());
-            String instance = "[it" + String(count) + "]";
-            itemStart = str.indexOf(instance);           
-            itemEnd = str.indexOf("[/it]", itemStart);
-            String stringCut = str.substring(itemStart,itemEnd);
-            String url = innerScrape(stringCut, "[u]");
-            printer.feed(1);      
-            printer.setSize('L');      
-            printer.println(innerScrape(stringCut, "[t]"));
-            printer.setSize('s');
-            printer.println(url);
-            printer.setSize('M');
-            printer.println(innerScrape(stringCut, "[d]"));
-            printer.println(innerScrape(stringCut, "[ti]"));
-            printer.feed(1);            
-            count++;
-            if(itemStart == -1)
-            {
-                  scrapeStatus = false; 
-                  wifiClient.disconnect();
-                  connectToBroker();
-                  itemStart=0;          
-                  str = "";
-            }
-            
+      scrape();
     }
+      
   }
   
   
@@ -181,6 +143,54 @@ void convertPayload(byte array[], byte len){
   
 }
 
+void scrape()
+{
+       
+      if(count == 1)
+      {
+          printer.inverseOn();
+          printer.println("Node " + String(node));
+          printer.inverseOff();
+      }
+            
+            Serial.println(freeRam());
+            String instance = "[it" + String(count) + "]";
+            itemStart = str.indexOf(instance);           
+            itemEnd = str.indexOf("[/it]", itemStart);
+            
+            if(itemStart == -1)
+            {
+                  itemStart=0;          
+                  str = "";
+                  Serial.println(F("No items"));
+                  if(moreThanOne)
+                  {
+                     printer.feed(1);
+                     printer.printBitmap(hivesmall_width, hivesmall_height, hivesmall_data);
+                     printer.feed(2);
+                  }
+                  scrapeStatus = false; 
+            }
+            
+            else
+            {
+            moreThanOne = true;              
+            String stringCut = str.substring(itemStart,itemEnd);
+            String url = innerScrape(stringCut, "[u]");
+            printer.feed(1);      
+            printer.setSize('L');      
+            printer.println(innerScrape(stringCut, "[t]"));
+            printer.setSize('s');
+            printer.println(url);
+            printer.setSize('M');
+            printer.println(innerScrape(stringCut, "[d]"));
+            printer.println(innerScrape(stringCut, "[ti]"));
+            printer.feed(1);            
+            count++;
+            }
+            
+    } 
+
 void httpRequest(int node)
 {
     if (client.connect(server, 80)) {
@@ -211,7 +221,6 @@ void connectToBroker(){
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.println("Message Recieved");
   // handle message
   
   //check the topic - use this is you want to sunbscribe to more than one channel
@@ -219,7 +228,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 //    Serial.println(topic); 
     //convert the payload to a string, then print it out
     convertPayload(payload, length);
-    delay(1);
     Serial.println(payloadString);
     if(payloadString == "print-node-1")
     {
@@ -231,10 +239,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     delay(1);
     wifiClient.disconnect();
     delay(1);
-    scrapeStatus = true;
-    delay(1);
+    scrapeStatus = true;    
     httpRequest(1);
-    delay(1);
+    Serial.println(F("I have been triggered"));
     }
     }
 }
