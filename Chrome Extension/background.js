@@ -14,6 +14,9 @@
             console.log("Connected to broker");
             client.subscribe("public/cai-fyp", {qos: 0});
             client.subscribe("public/cai-fyp/status", {qos: 0});
+            client.subscribe("public/cai-fyp/node-1/status", {qos:0});
+            client.subscribe("public/cai-fyp/node-2/status", {qos:0});
+            client.subscribe("public/cai-fyp/node-3/status", {qos:0});
           },
 
           //Gets Called if the connection could not be established
@@ -73,12 +76,19 @@
           numberOfHands = frame.hands.length;
           // Check the status of
 
-          // if(numberOfHands == 1)
-          // {
-            // console.log(numberOfFingers);
-            if(numberOfHands == 1 && numberOfFingers == 5)
-            {
-              
+          if(numberOfHands !== 1)
+          {
+            // console.log('stop');
+            publish('not activated','public/cai-fyp/fingerDetection', 0);
+            start = false;
+            // console.log(start);
+            iCount = 0;
+          }
+
+
+          else if(numberOfHands == 1 && numberOfFingers == 5)
+          {
+
               // console.log('start');
               if(start !=true)
               {
@@ -88,48 +98,36 @@
               // console.log(start);
               // fingerStatus();
             }
-          // }
-
-          if(numberOfHands !== 1)
-          {
-            // console.log('stop');
-            publish('not activated','public/cai-fyp/fingerDetection', 0);
-            start = false;
-            // console.log(start);
-          }
 
           // Detect Fist
 
-          if(start)
+          if(start == true)
           {
             if(captured == false){
-              if(detectFist(numberOfFingers, numberOfHands))
+              if((detectFist(numberOfFingers, numberOfHands)) == true)
               {
                 iCount = iCount + 1;
 
-                if(iCount > 2)
+                if(iCount >= 4)
                 {
-                capturedSound();
-                // console.log(window.location.href);
-                chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
-                  capturedUrl = tabs[0].url;
-                  // sendDataToDatabase(tabs[0].url);
-                  publish('captured','public/cai-fyp/status', 0);
-                });
-                captured = true;
+                  capturedSound();
+                  chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
+                    capturedUrl = tabs[0].url;
+                    publish('captured','public/cai-fyp/status', 0);
+                    publish('captured', 'public/cai-fyp/fingerDetection',0);
+                  });
+                  captured = true;
                 }
                 
               }
-              else
-              {
-                iCount = 0;
-              }
             }
+
+            else{captured == false;}
           }
         });
         function detectFist(fingers, hands)
         {
-          if(fingers == 0  && hands == 1)
+          if(fingers == 1  && hands == 1 || fingers == 0 && hands == 0)
           {
             return true;
           }
@@ -138,27 +136,20 @@
 
         function capturedSound()
         {
-          document.write('<audio id="player" src="alert.mp3">');
+          document.write('<audio id="player" src="camera.wav">');
           document.getElementById('player').play();
         }
-
-        function sendTheUrl(urlString) {
-          var req = new XMLHttpRequest();
-          req.open("POST", "https://www.caidavies.me/workshops/fyp/aj.php", true);
-          req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-          req.send("name=" + urlString);
-        }
-
-        function sendDataToDatabase(urlString)
+        function sendDataToDatabase(urlString, node)
         {
           $.ajax({
-          url: 'http://www.caidavies.me/workshops/fyp/aj.php', //This is the current doc
-          type: "POST",
-          data: {name:urlString},
-          success: function(data){
-           console.log(data);
-         }
-       })
+            url: 'http://www.hivenodes.com/fyp/add.php?node=' + node,
+            type: "POST",
+            data: {name:urlString},
+            success: function(data){
+             console.log(data);
+             console.log('success');
+           }
+         })
         }
 
         function changeOverlayImage()
@@ -169,9 +160,20 @@
 
         function handleMessage(topic, message)
         {
-          if(topic == "public/cai-fyp/status" && message == "saved")
+          if(topic == "public/cai-fyp/node-1/status" && message == "saved")
           {
-            sendDataToDatabase(capturedUrl);
+            sendDataToDatabase(capturedUrl, "1");
+            captured = false;
+          }
+          else if(topic == "public/cai-fyp/node-2/status" && message == "saved")
+          {
+            sendDataToDatabase(capturedUrl, "2");
+            captured = false;
+          }
+
+          else if(topic == "public/cai-fyp/node-3/status" && message == "saved")
+          {
+            sendDataToDatabase(capturedUrl, "3");
             captured = false;
           }
         }
@@ -182,5 +184,8 @@
         setInterval(function(){
 
           console.log(iCount);
+          // console.log("Number of hands: " + numberOfHands);
+          // console.log("Number of fingers: " +numberOfFingers);
+          // console.log(detectFist(numberOfFingers, numberOfHands));
 
-          }, 500);
+        }, 100);

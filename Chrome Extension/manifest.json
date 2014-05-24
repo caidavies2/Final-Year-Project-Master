@@ -9,7 +9,8 @@
     "http://www.caidavies.me/"
   ],
   "web_accessible_resources": [
-    "icon.png"
+    "/images/*.png",
+    "/images/*.jpg"
     ],
 
   "background": {
