@@ -1,9 +1,9 @@
-   #include <Adafruit_NeoPixel.h>
+#include <Adafruit_NeoPixel.h>
 #include "SPI.h"
 #include "PubSubClient.h"
 #include <Ethernet.h>
 #include <process.h>
-#define PIN 7
+#define PIN 6
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 IPAddress ip(192,168,0,177);
 
@@ -16,7 +16,7 @@ boolean capturedStatus = false;
 char subscribedChannel[] = "public/cai-fyp/status";
 String str = "";
 // Scrape stuff
-char server[] = "www.caidavies.me";  
+char server[] = "www.hivenodes.com";  
 boolean firstScrape = false;
 int scrapeCount = 0;
 const char* theval;
@@ -36,9 +36,9 @@ int pullyValue;
 //   Neopixel
 int brightness = 10;
 boolean brightnessBool = false;
-int r = 255;
-int g = 0;
-int b = 255;
+int r = 0;
+int g = 102;
+int b = 204;
 
 int numberOfItems;
 EthernetClient ethClient;
@@ -65,8 +65,8 @@ void setup() {
     if (ethClient.connect(server, 80)) {
     Serial.println("connected");
     // Make a HTTP request:
-    ethClient.println("GET /workshops/fyp/count.php");
-    ethClient.println("Host: www.caidavies.me");
+    ethClient.println("GET /~hivenode/fyp/count.php?node=1");
+    ethClient.println("Host: www.hivenodes.com");
     ethClient.println("Connection: close");
     ethClient.println();
     }
@@ -78,14 +78,13 @@ void setup() {
   pinMode(buttonPin, INPUT); 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
-  glowingBrightness();
+//  glowingBrightness();
   
 }
 
 // Loop
 
-void loop() {  
-          
+void loop() {   
   
           if(!firstScrape)
           {     
@@ -116,8 +115,14 @@ void loop() {
 void mainLoop()
 {
   
+  if(capturedStatus)
+  {
+    setColor(255,255,255,250,0);
+  }
+  else if(numberOfItems != 0)
+  {    
   glowingBrightness();
-  
+  }
   //check and maintain the connection to the broker
   if(!client.connected()){
      Serial.println("Disconnected");
@@ -134,7 +139,7 @@ void mainLoop()
     if(capturedStatus == true)
     {
       Serial.println("Saved");
-      client.publish("public/cai-fyp/status", "saved");
+      client.publish("public/cai-fyp/node-1/status", "saved");
       capturedStatus = false;
       cTouch(0,255,0);
       numberOfItems = numberOfItems + 1;
@@ -155,7 +160,7 @@ void mainLoop()
   //  Pulley stuff
   pullyValue = analogRead(A5);
 //  Serial.println(pullyValue);
-  if(pullyValue > 100 && pullyValue <600)
+  if(pullyValue > 100 && pullyValue <520)
   {
   pullyState = true;
 //  Serial.println(pullyState);
@@ -172,13 +177,12 @@ void mainLoop()
   {
       cTouch(0,0,0);
       numberOfItems = 0;
+      client.publish("public/cai-fyp/print", "print-node-1");
   }
   
       pullyPreviousState = pullyState;
-//      Serial.println(numberOfItems);
-      delay(50);        // delay in between reads for stability 
- 
-  
+      Serial.println(pullyValue);
+      delay(50);        // delay in between reads for stability
 }
 
 
@@ -215,12 +219,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
     {
         capturedStatus = true;
         strip.begin();
-        setColor(255,255,255,255,20);
+        setColor(255,255,255,250,20);
     }
     else if(payloadString == "saved")
     {
        capturedStatus = false;
-    }
+    }    
 }
 }
 
@@ -253,35 +257,35 @@ void glowingBrightness()
 {
   if(brightnessBool == false)
    {
-     if(brightness >=150)
+     if(brightness >=200)
      {
        brightnessBool = true;
      }
      else
      {
-       brightness = brightness + (numberOfItems * 1.5); // Speed is the number of links * appropriate number
+       brightness = brightness + (numberOfItems * 3); // Speed is the number of links * appropriate number
      }
    }
    
    else if(brightnessBool == true)
    {
-     if(brightness <= 10)
+     if(brightness <= 30)
      {
        brightnessBool = false;
      }
      else
      {
-       brightness = brightness - (numberOfItems * 1.5);
+       brightness = brightness - (numberOfItems * 3);
      }
    }
    
      setColor(r,g,b,brightness, 0);
-     Serial.println(brightness);
 }
 
 void cTouch(int r, int g, int b)
 {
-  setColor(r,g,b,20,30);
+  setColor(r,g,b,200,30);
+  Serial.println("c touch");
 //  delay(1000);
 }
 

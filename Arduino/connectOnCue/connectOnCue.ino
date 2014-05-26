@@ -5,6 +5,15 @@
 #include "SoftwareSerial.h"
 #include "hivesmall.h"
 
+// QR Code
+#include "qrprint.h"
+#include <SoftwareSerial.h>
+
+const byte pin = 6;                      // the pin that will be sending signals to the thermalPrinterPrinter printer (connected to printer's rx)
+const byte printHeat = 5;                // 7 is the printer default. Controls number of heating dots, higher = hotter, darker, and more current draw
+const byte printSpeed = 110;             // 80 is the printer default. Controls speed of printing (and darkness) higher = slower
+SoftwareSerial thermalPrinter(99, pin);  // set rx to a non-existant pin, because we don't need rx just tx
+
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -16,8 +25,8 @@ Adafruit_Thermal printer(printer_RX_Pin, printer_TX_Pin);
 int count = 1;
 String str = "";
 char* serverDNS = "box.bento.is";
-int port = 80;
-char subscribedChannel[] = "public/cai-fyp/status";
+int port = 80;  
+char subscribedChannel[] = "public/cai-fyp/print";
 char deviceName[] = "printer"; // set a unique name for each device connected to the broker
 boolean scrapeStatus = false;
 boolean moreThanOne;
@@ -38,6 +47,16 @@ IPAddress ip(192,168,0,177);
 EthernetClient client;
 PubSubClient wifiClient(serverDNS, port, callback, client);
 void setup() {
+  
+  //QR Code stuff 
+  thermalPrinter.begin(19200);
+  
+  //Modify the print speed and heat
+  thermalPrinter.write(27);
+  thermalPrinter.write(55);
+  thermalPrinter.write(printHeat);
+  thermalPrinter.write(printSpeed);
+  
  // Open serial communications and wait for port to open:
    printer.begin();
   Serial.begin(19200);
@@ -63,20 +82,6 @@ void setup() {
 
 void loop()
 {
-  
-//    if (Ethernet.begin(mac) == 0) {
-//    Serial.println(F("Failed to configure Ethernet using DHCP"));
-//    // no point in carrying on, so do nothing forevermore:
-//    // try to congifure using IP address instead of DHCP:
-//    Ethernet.begin(mac, ip);
-//  }
-//Ethernet.maintain();
-  //  if (!client.connected()) {
-//    if(!stopScraping)
-//    {
-////      cutString();
-//    }
-//  }
   if(!scrapeStatus){  
    if(!wifiClient.connected()){
      connectToBroker();
@@ -98,7 +103,7 @@ void loop()
   
   }
   
-    delay(50);
+    delay(25);
 }
 
 void cutString(String str)
@@ -167,7 +172,7 @@ void scrape()
                   {
                      printer.feed(1);
                      printer.printBitmap(hivesmall_width, hivesmall_height, hivesmall_data);
-                     printer.feed(2);
+                     printer.feed(4);
                   }
                   scrapeStatus = false; 
             }
@@ -178,14 +183,16 @@ void scrape()
             String stringCut = str.substring(itemStart,itemEnd);
             String url = innerScrape(stringCut, "[u]");
             printer.feed(1);      
-            printer.setSize('L');      
+            printer.setSize('s');      
+            printer.boldOn();
             printer.println(innerScrape(stringCut, "[t]"));
-            printer.setSize('s');
+            printer.boldOff();
+            printer.println("");
             printer.println(url);
             printer.setSize('M');
             printer.println(innerScrape(stringCut, "[d]"));
             printer.println(innerScrape(stringCut, "[ti]"));
-            printer.feed(1);            
+            printQR(url);
             count++;
             }
             
@@ -231,6 +238,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println(payloadString);
     if(payloadString == "print-node-1")
     {
+    printer.feed(1);
     node = 1;
     delay(1);
     str = "";
