@@ -10,7 +10,7 @@
 #include <SoftwareSerial.h>
 
 const byte pin = 6;                      // the pin that will be sending signals to the thermalPrinterPrinter printer (connected to printer's rx)
-const byte printHeat = 5;                // 7 is the printer default. Controls number of heating dots, higher = hotter, darker, and more current draw
+const byte printHeat = 8;                // 7 is the printer default. Controls number of heating dots, higher = hotter, darker, and more current draw
 const byte printSpeed = 110;             // 80 is the printer default. Controls speed of printing (and darkness) higher = slower
 SoftwareSerial thermalPrinter(99, pin);  // set rx to a non-existant pin, because we don't need rx just tx
 
@@ -154,7 +154,11 @@ void scrape()
       if(count == 1)
       {
           printer.inverseOn();
+          printer.boldOn();
+          printer.underlineOn();
           printer.println("Node " + String(node));
+          printer.boldOff();
+          printer.underlineOff();
           printer.inverseOff();
       }
             
@@ -182,16 +186,33 @@ void scrape()
             moreThanOne = true;              
             String stringCut = str.substring(itemStart,itemEnd);
             String url = innerScrape(stringCut, "[u]");
+            String title = innerScrape(stringCut, "[t]");
+            String description = innerScrape(stringCut, "[de]");
+            String date = innerScrape(stringCut, "[d]");
+            String time = innerScrape(stringCut, "[ti]");
+            if(title == "")
+            {
+              title = "Untitled";
+            }            
             printer.feed(1);      
-            printer.setSize('s');      
+            printer.setSize('S');      
             printer.boldOn();
-            printer.println(innerScrape(stringCut, "[t]"));
+            printer.println(title);
             printer.boldOff();
-            printer.println("");
+            printer.feed(1);
+            delay(25);
+            if (description != "...")
+            {              
+            printer.println(description);
+            printer.feed(1);
+            }
+              delay(25);
+            printer.underlineOn();
             printer.println(url);
-            printer.setSize('M');
-            printer.println(innerScrape(stringCut, "[d]"));
-            printer.println(innerScrape(stringCut, "[ti]"));
+            printer.underlineOff();
+            printer.println(date);
+            printer.println(time);
+            printer.println();
             printQR(url);
             count++;
             }
