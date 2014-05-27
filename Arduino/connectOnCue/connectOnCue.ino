@@ -5,14 +5,6 @@
 #include "SoftwareSerial.h"
 #include "hivesmall.h"
 
-// QR Code
-#include "qrprint.h"
-#include <SoftwareSerial.h>
-
-const byte pin = 6;                      // the pin that will be sending signals to the thermalPrinterPrinter printer (connected to printer's rx)
-const byte printHeat = 8;                // 7 is the printer default. Controls number of heating dots, higher = hotter, darker, and more current draw
-const byte printSpeed = 110;             // 80 is the printer default. Controls speed of printing (and darkness) higher = slower
-SoftwareSerial thermalPrinter(99, pin);  // set rx to a non-existant pin, because we don't need rx just tx
 
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
@@ -47,15 +39,6 @@ IPAddress ip(192,168,0,177);
 EthernetClient client;
 PubSubClient wifiClient(serverDNS, port, callback, client);
 void setup() {
-  
-  //QR Code stuff 
-  thermalPrinter.begin(19200);
-  
-  //Modify the print speed and heat
-  thermalPrinter.write(27);
-  thermalPrinter.write(55);
-  thermalPrinter.write(printHeat);
-  thermalPrinter.write(printSpeed);
   
  // Open serial communications and wait for port to open:
    printer.begin();
@@ -156,13 +139,13 @@ void scrape()
           printer.inverseOn();
           printer.boldOn();
           printer.underlineOn();
+          printer.setSize('M');
           printer.println("Node " + String(node));
           printer.boldOff();
           printer.underlineOff();
           printer.inverseOff();
       }
             
-            Serial.println(freeRam());
             String instance = "[it" + String(count) + "]";
             itemStart = str.indexOf(instance);           
             itemEnd = str.indexOf("[/it]", itemStart);
@@ -200,20 +183,20 @@ void scrape()
             printer.println(title);
             printer.boldOff();
             printer.feed(1);
-            delay(25);
             if (description != "...")
             {              
             printer.println(description);
             printer.feed(1);
             }
-              delay(25);
+            printer.boldOn();
             printer.underlineOn();
             printer.println(url);
+            printer.boldOff();
             printer.underlineOff();
+            printer.feed(1);
+            printer.setSize('M');
             printer.println(date);
             printer.println(time);
-            printer.println();
-            printQR(url);
             count++;
             }
             
@@ -259,18 +242,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println(payloadString);
     if(payloadString == "print-node-1")
     {
-    printer.feed(1);
-    node = 1;
-    delay(1);
-    str = "";
-    delay(1);
-    count = 1;
-    delay(1);
-    wifiClient.disconnect();
-    delay(1);
-    scrapeStatus = true;    
-    httpRequest(1);
-    Serial.println(F("I have been triggered"));
+      printMe(1);
+    }
+    else if(payloadString == "print-node-2")
+    {
+      printMe(2); 
+    }
+    else if(payloadString == "print-node-3")
+    {
+      printMe(3); 
     }
     }
 }
@@ -282,3 +262,19 @@ int freeRam () {
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 
+void printMe(int nodeToPrint)
+{
+ 
+    printer.feed(1);
+    node = nodeToPrint;
+    delay(1);
+    str = "";
+    delay(1);
+    count = 1;
+    delay(1);
+    wifiClient.disconnect();
+    delay(1);
+    scrapeStatus = true;    
+    httpRequest(nodeToPrint); 
+  
+}

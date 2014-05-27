@@ -121,7 +121,11 @@ void mainLoop()
   }
   else if(numberOfItems != 0)
   {    
-  glowingBrightness();
+     glowingBrightness();
+  }
+  else
+  {
+     setColor(0,0,0,0,0);   
   }
   //check and maintain the connection to the broker
   if(!client.connected()){
@@ -204,9 +208,7 @@ void convertPayload(byte array[], byte len){
 }
 
 //triggered when a message is recieved on a subscribed channel
-void callback(char* topic, byte* payload, unsigned int length) {
- // Serial.println("Message Recieved");
-  
+void callback(char* topic, byte* payload, unsigned int length) {  
   // handle message
   
   //check the topic - use this is you want to sunbscribe to more than one channel
@@ -224,7 +226,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     else if(payloadString == "saved")
     {
        capturedStatus = false;
-    }    
+    }
+    else if(payloadString == "cleared")
+    {
+       capturedStatus = false; 
+    }
 }
 }
 
