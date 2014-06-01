@@ -1,11 +1,10 @@
         //MQTT Connection
-        var val, stringVal;
+        var val, stringVal, capturedUrl, timerInstance;
         // var client = new Messaging.Client("75.101.161.236", 8083, "myclientid_" + parseInt(Math.random() * 100, 10));
         // var client = new Messaging.Client("146.185.174.52", 8080, "myclientid_" + parseInt(Math.random() * 100, 10));
         var client = new Messaging.Client("hazel.siddv.net", 8080, "myclientid_" + parseInt(Math.random() * 100, 10));
-        var capturedUrl;
+        var nodeTimer = 0;
         var options = {
-
           //connection attempt timeout in seconds
           timeout: 3,
 
@@ -110,13 +109,15 @@
 
                 if(iCount >= 4)
                 {
+                  captured = true;
                   capturedSound();
+                  startTimer();
                   chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
                     capturedUrl = tabs[0].url;
                     publish('captured','public/cai-fyp/status', 0);
-                    publish('captured', 'public/cai-fyp/fingerDetection',0);
+                    publish('captured', 'public/cai-fyp/fingerDetection',0);                    
                   });
-                  captured = true;
+                  
                 }
                 
               }
@@ -125,6 +126,39 @@
             else{captured == false;}
           }
         });
+
+        function startTimer()
+        {          
+            timerInstance = setInterval(function(){
+            nodeTimer++;
+            var timeLeft = (60 - nodeTimer);
+            chrome.browserAction.setBadgeText({text: timeLeft.toString()});
+            if(nodeTimer == 60)
+            {
+              captured = false;
+              clearTimer();
+              publish('cleared','public/cai-fyp/status', 0);
+              nodeTimer = 0;
+            }
+            else if(timeLeft <= 10)
+            {                            
+              chrome.browserAction.setBadgeBackgroundColor({color:"#c43825"});
+            }
+            else
+            {
+              chrome.browserAction.setBadgeBackgroundColor({color:"#77cc33"});
+            }            
+            }, 1000);
+
+        }
+
+        function clearTimer()
+        {
+          clearInterval(timerInstance);
+          chrome.browserAction.setBadgeText({text: ""});
+          nodeTimer = 0;
+        }
+
         function detectFist(fingers, hands)
         {
           if(fingers == 1  && hands == 1 || fingers == 0 && hands == 0)
@@ -161,31 +195,33 @@
         function handleMessage(topic, message)
         {
           if(topic == "public/cai-fyp/node-1/status" && message == "saved")
-          {
+          {          
             sendDataToDatabase(capturedUrl, "1");
             captured = false;
+            clearTimer();
           }
           else if(topic == "public/cai-fyp/node-2/status" && message == "saved")
           {
             sendDataToDatabase(capturedUrl, "2");
             captured = false;
+            clearTimer();
           }
 
           else if(topic == "public/cai-fyp/node-3/status" && message == "saved")
           {
             sendDataToDatabase(capturedUrl, "3");
             captured = false;
+            clearTimer();
           }
         }
 
         // connect controller
         controller.connect();
 
-        setInterval(function(){
+        chrome.browserAction.onClicked.addListener(function callback(tab){
+        clearTimer();
+        captured =false;
+        publish('cleared','public/cai-fyp/status', 0);
+        });
 
-          console.log(iCount);
-          // console.log("Number of hands: " + numberOfHands);
-          // console.log("Number of fingers: " +numberOfFingers);
-          // console.log(detectFist(numberOfFingers, numberOfHands));
 
-        }, 100);

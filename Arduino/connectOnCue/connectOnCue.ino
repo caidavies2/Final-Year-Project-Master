@@ -8,7 +8,7 @@
 
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEA };
 int printer_RX_Pin = 5;  // This is the green wire
 int printer_TX_Pin = 6;  // This is the yellow wire
 int itemEnd, itemStart;
@@ -140,7 +140,8 @@ void scrape()
           printer.boldOn();
           printer.underlineOn();
           printer.setSize('M');
-          printer.println("Node " + String(node));
+//          printer.println("Node " + String(node));
+          printer.println("Hive - Lounge");
           printer.boldOff();
           printer.underlineOff();
           printer.inverseOff();
@@ -177,11 +178,11 @@ void scrape()
             {
               title = "Untitled";
             }            
-            printer.feed(1);      
+            printer.feed(1);
+            delay(25);      
             printer.setSize('S');      
-            printer.boldOn();
             printer.println(title);
-            printer.boldOff();
+            delay(25);
             printer.feed(1);
             if (description != "...")
             {              
@@ -197,7 +198,8 @@ void scrape()
             printer.setSize('M');
             printer.println(date);
             printer.println(time);
-            count++;
+            printer.feed(1);
+            count++;   
             }
             
     } 

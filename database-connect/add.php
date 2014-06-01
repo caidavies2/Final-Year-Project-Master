@@ -1,10 +1,11 @@
 <?php
+header('content-type:text/html;charset=utf-8');
 if (isSet($_POST["name"])) {
   $url = $_POST['name'];
 }
 else
 {
-  $url = "http://sphotos-f.ak.fbcdn.net/hphotos-ak-prn1/76921_485313491516560_1467091348_n.jpg";
+  $url = "http://www.dribbble.com/shots/764245-Making-Forms?list=popular&offset=36";
 }
 date_default_timezone_set("Europe/London");
 $node = $_GET["node"];
@@ -23,7 +24,9 @@ $meta = get_meta_tags($url);
 $description;
 $compressedURL;
 $title = getTitle($data, $matches, $extension);
+$title = substr($title, 0, strpos($title, ' ', 15));
 $description = getDescription($data, $matches);
+$description = substr($description, 0, strpos($description, ' ', 15)) . "...";
 $tinyURL = tinyUrl($url);
 
 // echo $title;
@@ -45,10 +48,6 @@ function getTitle($data, $matches, $extension)
   {
     return checkExtension($extension);
   }
-  // else
-  // {
-  //   getTitle($data, $matches);
-  // }
 
   else if(preg_match("/<title>(.+)<\/title>/i", $data, $matches))
   {
@@ -129,7 +128,5 @@ function tinyUrl($lurl)
   curl_close($curl);
   return $result;
 }
-
-
 
 ?>
