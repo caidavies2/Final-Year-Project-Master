@@ -5,7 +5,7 @@ if (isSet($_POST["name"])) {
 }
 else
 {
-  $url = "http://www.dribbble.com/shots/764245-Making-Forms?list=popular&offset=36";
+  $url = "";
 }
 date_default_timezone_set("Europe/London");
 $node = $_GET["node"];
@@ -20,7 +20,6 @@ $length = strlen($url);
 $extension = substr($url, ($length-3), $length);
 $data =file_get_contents($url); 
 $meta = get_meta_tags($url);
-
 $description;
 $compressedURL;
 $title = getTitle($data, $matches, $extension);
@@ -28,19 +27,25 @@ $title = substr($title, 0, strpos($title, ' ', 15));
 $description = getDescription($data, $matches);
 $description = substr($description, 0, strpos($description, ' ', 15)) . "...";
 $tinyURL = tinyUrl($url);
-
 // echo $title;
-// echo "<br>";
-// echo $description;
-// echo "<br>";
-// echo $tinyURL;
-echo $addItemNumber;
 
-// Adding new data:
-$dataEncoded[$addItemNumber] = array('Id' => $addItemNumber, 'Url' => $tinyURL, 'Title' => $title, 'description' => $description, 'Date:' => date('D j M Y'), 'Time:' => date('h:i:s'));
+echo firstTitle($data);
+echo "<br>";
+echo $description;
+echo "<br>";
+echo $tinyURL;
 
-// Writing modified data:
-file_put_contents("storage/node-" . $node . ".json", json_encode($dataEncoded, JSON_FORCE_OBJECT));
+// Uncomment
+
+// echo $addItemNumber;
+
+// // Adding new data:
+// $dataEncoded[$addItemNumber] = array('Id' => $addItemNumber, 'Url' => $tinyURL, 'Title' => $title, 'description' => $description, 'Date:' => date('D j M Y'), 'Time:' => date('h:i:s'));
+
+// // Writing modified data:
+// file_put_contents("storage/node-" . $node . ".json", json_encode($dataEncoded, JSON_FORCE_OBJECT));
+
+// End of uncomment
 
 function getTitle($data, $matches, $extension)
 {
@@ -48,6 +53,16 @@ function getTitle($data, $matches, $extension)
   {
     return checkExtension($extension);
   }
+
+  // else if(page_title($data))
+  // {
+  //   return page_title($data);
+  // }
+
+  // else if ($meta);
+  // {
+  //   return $meta['title'];
+  // }
 
   else if(preg_match("/<title>(.+)<\/title>/i", $data, $matches))
   {
@@ -60,8 +75,7 @@ function getTitle($data, $matches, $extension)
 
   else
   {
-    return $meta['title'];
-    // Put in code to 'link 3 etc' if no title or h1 tags.
+    return "";
   }
 
 }
@@ -129,4 +143,17 @@ function tinyUrl($lurl)
   return $result;
 }
 
+function firstTitle($data) {
+
+    if (!$data) return null;
+
+    $matches = array();
+
+    if (preg_match('/<title>(.*?)<\/title>/', $data, $matches)) {
+        return $matches[1];
+    }
+    else {
+        return null;
+    }
+}
 ?>

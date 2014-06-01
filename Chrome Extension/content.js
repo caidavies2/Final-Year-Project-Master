@@ -20,7 +20,7 @@
           onSuccess: function () {
             console.log("Connected to broker");
             client.subscribe("public/cai-fyp/fingerDetection", {qos: 0});
-            client.subscribe("public/cai-fyp/");
+            client.subscribe("public/cai-fyp/status");
           },
 
           //Gets Called if the connection could not be established
@@ -33,7 +33,7 @@
 
         client.onMessageArrived = function (message) {
           handleMessage(message.destinationName, message.payloadString);
-
+          console.log(message.payloadString);
         };
 
 
@@ -41,8 +41,6 @@
         {
           handState = true;
           $('#fyp-container').addClass('notification-on');
-          // console.log("Hand In");
-
           setTimeout(function(){
             showNotification(handState);
           }, 500)
@@ -98,9 +96,15 @@
                 capturedNotification();
               }
             }
-            else if (topic == "public/cai-fyp/")
+            else if (topic == "public/cai-fyp/status")
             {
-              
+            
+              if(message == "cleared")
+              {
+
+                $(".grab-icon").removeClass("grab-notification");
+
+              }
 
             }
 
