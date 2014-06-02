@@ -1,3 +1,4 @@
+<head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><head>
 <?php
 header('content-type:text/html;charset=utf-8');
 if (isSet($_POST["name"])) {
@@ -5,7 +6,7 @@ if (isSet($_POST["name"])) {
 }
 else
 {
-  $url = "";
+  $url = "http://www.digitalartandtechnology.co.uk";
 }
 date_default_timezone_set("Europe/London");
 $node = $_GET["node"];
@@ -23,13 +24,13 @@ $meta = get_meta_tags($url);
 $description;
 $compressedURL;
 $title = getTitle($data, $matches, $extension);
-$title = substr($title, 0, strpos($title, ' ', 15));
-$description = getDescription($data, $matches);
+// $title = substr($title, 0, strpos($title, ' ', 20));
+// $description = getDescription($data, $matches);
+$description = $meta['description'];
 $description = substr($description, 0, strpos($description, ' ', 15)) . "...";
 $tinyURL = tinyUrl($url);
-// echo $title;
 
-echo firstTitle($data);
+echo $title;
 echo "<br>";
 echo $description;
 echo "<br>";
@@ -37,13 +38,13 @@ echo $tinyURL;
 
 // Uncomment
 
-// echo $addItemNumber;
+echo $addItemNumber;
 
-// // Adding new data:
-// $dataEncoded[$addItemNumber] = array('Id' => $addItemNumber, 'Url' => $tinyURL, 'Title' => $title, 'description' => $description, 'Date:' => date('D j M Y'), 'Time:' => date('h:i:s'));
+// Adding new data:
+$dataEncoded[$addItemNumber] = array('Id' => $addItemNumber, 'Url' => $tinyURL, 'Title' => $title, 'description' => $description, 'Date:' => date('D j M Y'), 'Time:' => date('h:i:s'));
 
-// // Writing modified data:
-// file_put_contents("storage/node-" . $node . ".json", json_encode($dataEncoded, JSON_FORCE_OBJECT));
+// Writing modified data:
+file_put_contents("storage/node-" . $node . ".json", json_encode($dataEncoded, JSON_UNESCAPED_UNICODE));
 
 // End of uncomment
 
@@ -54,46 +55,42 @@ function getTitle($data, $matches, $extension)
     return checkExtension($extension);
   }
 
-  // else if(page_title($data))
-  // {
-  //   return page_title($data);
-  // }
+  else {
+    if (!$data) return null;
 
-  // else if ($meta);
-  // {
-  //   return $meta['title'];
-  // }
+    $matches = array();
 
-  else if(preg_match("/<title>(.+)<\/title>/i", $data, $matches))
-  {
-    return "$matches[1]";
-  }
-  else if(preg_match("/<h1>(.+)<\/h1>/i", $data, $matches))
-  {
-    return "$matches[1]";
-  }
-
-  else
-  {
-    return "";
+    if (preg_match('/<title>(.*?)<\/title>/', $data, $matches)) {
+      return $matches[1];
+    }
+    else {
+      return null;
+    }
   }
 
 }
 
 function getDescription($data, $matches)
 {
-  if(preg_match("/<p>(.+)<\/p>/i", $data, $matches))
+  
+  if($meta['description'])
   {
-    return "$matches[1]";
+   return $meta['description'];
+  }
+  else if($meta['keywords'])
+  {
+    return $meta['keywords'];
+  }
+
+  else if(preg_match('/<h1>(.*?)<\/h2>/', $data, $matches))
+  {
+    return $matches[1];
   }
   else if(preg_match("/<h2>(.+)<\/h2>/i", $data, $matches))
   {
     return "$matches[1]";
   }
-  else
-  {
-   return $meta['description'];
-  }
+  else {return null;}
 }
 
 function checkExtension($extension)
@@ -145,15 +142,6 @@ function tinyUrl($lurl)
 
 function firstTitle($data) {
 
-    if (!$data) return null;
 
-    $matches = array();
-
-    if (preg_match('/<title>(.*?)<\/title>/', $data, $matches)) {
-        return $matches[1];
-    }
-    else {
-        return null;
-    }
 }
 ?>

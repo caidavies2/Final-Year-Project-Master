@@ -1,3 +1,4 @@
+<head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><head>
 <?php
 header('content-type:text/html;charset=utf-8');
 $node = $_GET["node"];
